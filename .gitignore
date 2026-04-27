@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+dist/
+build/
+*.log
+.DS_Store
+.vscode/
+.idea/
+frontend/dist/
+backend/node_modules/
