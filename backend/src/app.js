@@ -7,7 +7,9 @@ const postRouter = require('./routes/post.route');
 const userRouter = require('./routes/user.route');
 
 const app = express();
+const healthRouter = require('./routes/health.route');
 
+app.use('/', healthRouter);  // Add before other routes
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
     .map((origin) => origin.trim())

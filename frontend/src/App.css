@@ -439,6 +439,18 @@ button:hover {
   gap: 18px;
 }
 
+.feed-grid {
+  column-count: 2;
+  column-gap: 16px;
+}
+
+.feed-grid > * {
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin: 0 0 16px;
+}
+
 .page-content {
   margin-bottom: 6px;
 }
@@ -704,14 +716,44 @@ button:hover {
   background: #ead8ff;
 }
 
-.post img {
+.post-media-toggle {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  margin-top: 2px;
+  border: 0;
+  background: transparent;
+}
+
+.post-media-toggle.expanded {
+  margin-top: 0;
+}
+
+.post-media {
   width: 100%;
   aspect-ratio: 4 / 5;
-  max-height: 760px;
+  max-height: 360px;
   object-fit: cover;
   border: 3px solid var(--line);
   image-rendering: pixelated;
   border-radius: 4px;
+  transition:
+    width 180ms ease,
+    max-height 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.post-media.expanded {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  max-height: 760px;
+  box-shadow: 0 12px 0 rgba(42, 20, 88, 0.12);
+}
+
+.post-media-toggle:hover .post-media {
+  transform: translateY(-1px);
 }
 
 .post-actions {
@@ -891,12 +933,13 @@ button:hover {
     width: 100%;
   }
 
-  .profile-actions {
-    flex-direction: column;
+  .feed-grid {
+    column-count: 1;
+    column-gap: 0;
   }
 
-  .post img {
-    aspect-ratio: 1 / 1;
+  .profile-actions {
+    flex-direction: column;
   }
 
   .user-search-form {
@@ -927,6 +970,10 @@ button:hover {
     max-width: 760px;
   }
 
+  .feed-grid {
+    column-count: 3;
+  }
+
   .feed > .post,
   .feed > .empty-feed-card {
     max-width: 760px;
@@ -941,6 +988,10 @@ button:hover {
   .card {
     padding: 14px;
     border-radius: 10px;
+  }
+
+  .feed-grid {
+    column-count: 1;
   }
 
   .post-actions {
