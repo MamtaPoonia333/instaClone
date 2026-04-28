@@ -10,8 +10,13 @@ const app = express();
 const healthRouter = require('./routes/health.route');
 
 app.use('/', healthRouter);  // Add before other routes
-const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173')
-    .split(',')
+const allowedOrigins = [
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL,
+    'https://instaclone-1-0zf7.onrender.com',
+    'http://localhost:5173'
+]
+    .flatMap((value) => (value || '').split(','))
     .map((origin) => origin.trim())
     .filter(Boolean);
 
