@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const PROD_API_BASE = 'https://instaclone.onrender.com'
+const PROD_API_BASE = 'https://instaclone-57b2.onrender.com'
 const LOCAL_API_BASE = 'http://localhost:3000'
 const isRenderHost = window.location.hostname.endsWith('onrender.com')
 const API_BASE = import.meta.env.VITE_API_URL || (isRenderHost ? PROD_API_BASE : LOCAL_API_BASE)
