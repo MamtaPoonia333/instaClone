@@ -3,7 +3,9 @@ import { useEffect, useState } from 'react'
 const PROD_API_BASE = 'https://instaclone-57b2.onrender.com'
 const LOCAL_API_BASE = 'http://localhost:3000'
 const isRenderHost = window.location.hostname.endsWith('onrender.com')
-const API_BASE = import.meta.env.VITE_API_URL || (isRenderHost ? PROD_API_BASE : LOCAL_API_BASE)
+const API_BASE = isRenderHost
+  ? PROD_API_BASE
+  : (import.meta.env.VITE_API_URL || LOCAL_API_BASE)
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '')
@@ -623,12 +625,16 @@ function App() {
             <>
               <form onSubmit={handleLogin}>
                 <input
+                  id="login-email"
+                  name="email"
                   type="email"
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 <input
+                  id="login-password"
+                  name="password"
                   type="password"
                   placeholder="Password"
                   value={password}
@@ -646,18 +652,24 @@ function App() {
             <>
               <form onSubmit={handleSignup}>
                 <input
+                  id="signup-username"
+                  name="username"
                   type="text"
                   placeholder="Username"
                   value={signupUsername}
                   onChange={(e) => setSignupUsername(e.target.value)}
                 />
                 <input
+                  id="signup-email"
+                  name="email"
                   type="email"
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 <input
+                  id="signup-password"
+                  name="password"
                   type="password"
                   placeholder="Password"
                   value={password}
