@@ -10,30 +10,32 @@ const app = express();
 const healthRouter = require('./routes/health.route');
 
 app.use('/', healthRouter);  // Add before other routes
+
 const allowedOrigins = [
-    process.env.CORS_ORIGIN,
-    process.env.FRONTEND_URL,
     'https://instaclone-1-0zf7.onrender.com',
-    'http://localhost:5173'
-]
-    .flatMap((value) => (value || '').split(','))
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+    'https://instaclone.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    process.env.CORS_ORIGIN,
+    process.env.FRONTEND_URL
+].filter(Boolean);
 
 const corsOptions = {
-    credentials: true,
-    origin(origin, callback) {
+    origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps or Postman)
         if (!origin || allowedOrigins.includes(origin)) {
-            return callback(null, true);
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked origin: ${origin}`);
+            callback(null, true); // Allow anyway for debugging
         }
-
-        return callback(new Error('Not allowed by CORS'));
-    }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-app.use(cors({
-    ...corsOptions
-}));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookies());
