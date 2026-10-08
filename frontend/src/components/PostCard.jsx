@@ -48,9 +48,21 @@ function PostCard({
         type="button"
         className={isExpanded ? 'post-media-toggle expanded' : 'post-media-toggle'}
         onClick={() => onTogglePostSize(postId)}
-        aria-label={isExpanded ? 'Shrink post image' : 'Expand post image'}
+        aria-label={isExpanded ? 'Shrink post' : 'Expand post'}
       >
-        <img className={isExpanded ? 'post-media expanded' : 'post-media'} src={post.image} alt={post.caption} />
+        {post.mediaType === 'video' ? (
+          <video
+            className={isExpanded ? 'post-media expanded' : 'post-media'}
+            src={post.image}
+            controls
+            muted
+            playsInline
+            loop
+            aria-label={post.caption || 'Video post'}
+          />
+        ) : (
+          <img className={isExpanded ? 'post-media expanded' : 'post-media'} src={post.image} alt={post.caption} />
+        )}
       </button>
 
       <div className="post-actions">

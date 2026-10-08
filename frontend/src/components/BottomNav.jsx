@@ -1,7 +1,27 @@
-// Bottom tab bar for switching between feed / search / upload / profile.
+// Bottom tab bar for switching between feed / reels / search / upload / profile.
 function BottomNav({ activePage, onChangePage }) {
   return (
     <nav className="bottom-nav" aria-label="Primary">
+      <button
+        type="button"
+        className={activePage === 'chats' ? 'nav-btn active' : 'nav-btn'}
+        onClick={() => onChangePage('chats')}
+        aria-label="Chats"
+      >
+        <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5.5 4.75h13A2.75 2.75 0 0 1 21.25 7.5v7A2.75 2.75 0 0 1 18.5 17.25H11l-4.4 3.25a.75.75 0 0 1-1.2-.6v-2.65a2.75 2.75 0 0 1-2.65-2.75v-7A2.75 2.75 0 0 1 5.5 4.75m0 1.5c-.69 0-1.25.56-1.25 1.25v7c0 .69.56 1.25 1.25 1.25h1.4v1.66l3.2-2.36h8.4c.69 0 1.25-.56 1.25-1.25v-7c0-.69-.56-1.25-1.25-1.25z" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={activePage === 'reels' ? 'nav-btn active' : 'nav-btn'}
+        onClick={() => onChangePage('reels')}
+        aria-label="Reels"
+      >
+        <svg className="nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 3.75h10A3.25 3.25 0 0 1 20.25 7v10A3.25 3.25 0 0 1 17 20.25H7A3.25 3.25 0 0 1 3.75 17V7A3.25 3.25 0 0 1 7 3.75m0 1.5A1.75 1.75 0 0 0 5.25 7v10c0 .97.78 1.75 1.75 1.75h10A1.75 1.75 0 0 0 18.75 17V7A1.75 1.75 0 0 0 17 5.25zm2.5 2.5 6 4.25-6 4.25z" />
+        </svg>
+      </button>
       <button
         type="button"
         className={activePage === 'feed' ? 'nav-btn active' : 'nav-btn'}

@@ -28,9 +28,11 @@ async function createPostController(req, res) {
             })
         }
 
-        if (!req.file) {
+        const uploadedFile = req.files?.media?.[0] || req.files?.image?.[0] || req.file
+
+        if (!uploadedFile) {
             return res.status(400).json({
-                message: 'Image file is required'
+                message: 'Image or video file is required'
             })
         }
 
@@ -41,14 +43,17 @@ async function createPostController(req, res) {
         }
 
         const file = await imagekit.files.upload({
-            file: await toFile(Buffer.from(req.file.buffer), 'file'),
-            fileName: 'Test',
+            file: await toFile(Buffer.from(uploadedFile.buffer), uploadedFile.originalname || 'media'),
+            fileName: uploadedFile.originalname || 'media',
             folder: 'cohort-2-insta-clone-posts'
         })
 
         const post = await postModel.create({
             caption: req.body.caption,
             image: file.url,
+            mediaType: req.body.mediaType === 'video' || uploadedFile.mimetype?.startsWith('video/')
+                ? 'video'
+                : 'image',
             user: userId,
             username: username || '',
             time: new Date()

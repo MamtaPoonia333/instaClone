@@ -5,11 +5,14 @@ const identifyUser = require('../middleware/auth.middleware');
 const multer = require('multer');
 
 const memoryStorage = multer.memoryStorage();
-const uploadImage = multer({ storage: memoryStorage });
+const uploadMedia = multer({ storage: memoryStorage });
 
 postRouter.use(identifyUser);
 
-postRouter.post('/upload', uploadImage.single('image'), postController.createPostController);
+postRouter.post('/upload', uploadMedia.fields([
+    { name: 'media', maxCount: 1 },
+    { name: 'image', maxCount: 1 }
+]), postController.createPostController);
 
 postRouter.get('/get', postController.getPostController);
 postRouter.get('/likes/me', postController.getMyLikedPostsController);

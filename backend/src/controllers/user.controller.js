@@ -193,6 +193,7 @@ async function editProfileController(req, res) {
             message: 'Profile updated successfully',
             token,
             user: {
+                _id: updatedUser._id,
                 username: updatedUser.username,
                 email: updatedUser.email,
                 bio: updatedUser.bio,
@@ -208,7 +209,9 @@ async function editProfileController(req, res) {
 
 async function searchUsersController(req, res) {
     try {
-        const query = (req.query.username || '').trim()
+        const query = typeof req.query.username === 'string'
+            ? req.query.username.trim()
+            : ''
 
         if (!query) {
             return res.status(400).json({
@@ -220,7 +223,8 @@ async function searchUsersController(req, res) {
         const users = await userModel.find({
             username: { $regex: escapedQuery, $options: 'i' }
         })
-            .select('username bio profileImg -_id')
+            .select('_id username bio profileImg')
+            .sort({ username: 1 })
             .limit(20)
 
         return res.status(200).json({

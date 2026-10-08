@@ -3,10 +3,17 @@ import { API_BASE } from './api/config'
 import Background from './components/Background'
 import AuthCard from './components/AuthCard'
 import FeedPage from './components/FeedPage'
+import ReelsPage from './components/ReelsPage'
 import SearchPage from './components/SearchPage'
 import UploadPage from './components/UploadPage'
 import ProfilePage from './components/ProfilePage'
 import BottomNav from './components/BottomNav'
+import AllChats from './components/AllChats'
+import Chat from './components/Chat'
+
+const savedPage = localStorage.getItem('activePage')
+const validPages = ['feed', 'reels', 'search', 'upload', 'chats', 'profile']
+const savedUser = localStorage.getItem('currentUser')
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '')
@@ -15,8 +22,11 @@ function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loggedIn, setLoggedIn] = useState(Boolean(localStorage.getItem('token')))
-  const [activePage, setActivePage] = useState('feed')
+  const [activePage, setActivePage] = useState(
+    validPages.includes(savedPage) ? savedPage : 'feed'
+  )
   const [currentUser, setCurrentUser] = useState({
+    _id: '',
     username: '',
     email: '',
     bio: '',
@@ -28,7 +38,8 @@ function App() {
     followeesCount: 0
   })
   const [uploadCaption, setUploadCaption] = useState('')
-  const [uploadImageFile, setUploadImageFile] = useState(null)
+  const [uploadMediaFile, setUploadMediaFile] = useState(null)
+  const [uploadType, setUploadType] = useState('image')
   const [uploadPreview, setUploadPreview] = useState('')
   const [likes, setLikes] = useState({})
   const [following, setFollowing] = useState({})
@@ -42,27 +53,167 @@ function App() {
   const [expandedPosts, setExpandedPosts] = useState({})
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
+  const [hasSearched, setHasSearched] = useState(false)
   const [searchError, setSearchError] = useState('')
   const [isSearchLoading, setIsSearchLoading] = useState(false)
   const [isProfileSaving, setIsProfileSaving] = useState(false)
   const [profileUpdateMessage, setProfileUpdateMessage] = useState('')
+  const [conversations, setConversations] = useState([])
+  const [selectedChatUser, setSelectedChatUser] = useState(null)
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatSearchQuery, setChatSearchQuery] = useState('')
+  const [chatSearchResults, setChatSearchResults] = useState([])
+  const [chatLoading, setChatLoading] = useState(false)
+  const [chatSending, setChatSending] = useState(false)
+  const [chatSearchLoading, setChatSearchLoading] = useState(false)
+  const [chatError, setChatError] = useState('')
+
+  useEffect(() => {
+    if (loggedIn) {
+      localStorage.setItem('activePage', activePage)
+      localStorage.setItem('currentUser', JSON.stringify(currentUser))
+    }
+  }, [activePage, currentUser, loggedIn])
+
+  useEffect(() => {
+    if (!loggedIn || !savedUser) return
+    try {
+      setCurrentUser((previous) => ({ ...previous, ...JSON.parse(savedUser) }))
+    } catch (error) {
+      localStorage.removeItem('currentUser')
+      console.error('Unable to restore saved user session:', error)
+    }
+  }, [loggedIn])
 
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {}
+
+  const authenticatedRequestOptions = (options = {}) => ({
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...authHeaders,
+      ...(options.headers || {})
+    }
+  })
+
+  const handleSessionExpired = (message = 'Your session has expired. Please log in again.') => {
+    setSearchError(message)
+    setToken('')
+    setLoggedIn(false)
+    localStorage.removeItem('token')
+    localStorage.removeItem('currentUser')
+  }
 
   const fetchPosts = async () => {
     if (!token) return
 
     try {
-      const response = await fetch(`${API_BASE}/api/post/get`, {
-        headers: authHeaders
-      })
+      const response = await fetch(
+        `${API_BASE}/api/post/get`,
+        authenticatedRequestOptions({
+          cache: 'no-store',
+          headers: { Accept: 'application/json' }
+        })
+      )
       const data = await response.json()
       if (!response.ok) return
       setPosts(data.posts || [])
     } catch (error) {
       console.error('Failed to fetch posts:', error)
     }
+
   }
+
+  const fetchConversations = async () => {
+    if (!token) return
+    try {
+      const response = await fetch(`${API_BASE}/api/messages/conversations`, { headers: authHeaders })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.message || 'Unable to load chats')
+      setConversations(data.conversations || [])
+    } catch (error) {
+      setChatError(error.message)
+    }
+  }
+
+  const fetchConversation = async (user) => {
+    if (!token || !user?._id) return
+    setSelectedChatUser(user)
+    setChatLoading(true)
+    setChatError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/messages/${user._id}`, { headers: authHeaders })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.message || 'Unable to load conversation')
+      if (data.currentUserId) {
+        setCurrentUser((previous) => ({ ...previous, _id: data.currentUserId }))
+      }
+      setSelectedChatUser(data.user || user)
+      setChatMessages(data.messages || [])
+    } catch (error) {
+      setChatError(error.message)
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  const searchChatUsers = async (event) => {
+    event?.preventDefault()
+    const query = chatSearchQuery.trim()
+    if (!query || !token) return
+    setChatSearchLoading(true)
+    setChatError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/user/search?username=${encodeURIComponent(query)}`, { headers: authHeaders })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.message || 'Unable to search users')
+      setChatSearchResults((data.users || []).filter((user) => user.username !== currentUser.username))
+    } catch (error) {
+      setChatError(error.message)
+    } finally {
+      setChatSearchLoading(false)
+    }
+  }
+
+  const sendChatMessage = async (event) => {
+    event.preventDefault()
+    const content = chatInput.trim()
+    if (!content || !selectedChatUser?._id || chatSending) return
+    setChatSending(true)
+    setChatError('')
+    try {
+      const response = await fetch(`${API_BASE}/api/messages`, {
+        method: 'POST',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiverId: selectedChatUser._id, content })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.message || 'Unable to send message')
+      setChatMessages((previous) => [...previous, data.message])
+      setChatInput('')
+      await fetchConversations()
+    } catch (error) {
+      setChatError(error.message)
+    } finally {
+      setChatSending(false)
+    }
+  }
+
+  const openChatWithUser = async (user) => {
+    setActivePage('chats')
+    await fetchConversation(user)
+  }
+
+  useEffect(() => {
+    if (loggedIn && token && activePage === 'chats') fetchConversations()
+  }, [loggedIn, token, activePage])
+
+  useEffect(() => {
+    if (!selectedChatUser?._id || activePage !== 'chats') return undefined
+    const interval = window.setInterval(() => fetchConversation(selectedChatUser), 5000)
+    return () => window.clearInterval(interval)
+  }, [selectedChatUser?._id, activePage, token])
 
   const fetchUserStats = async (username) => {
     if (!token || !username) return
@@ -162,6 +313,7 @@ function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser({
+        _id: data.user?._id || '',
         username: data.user?.username || '',
         email: data.user?.email || '',
         bio: data.user?.bio || '',
@@ -203,6 +355,7 @@ function App() {
       setToken(data.token)
       localStorage.setItem('token', data.token)
       setCurrentUser({
+        _id: data.user?._id || '',
         username: data.user?.username || signupUsername,
         email: data.user?.email || email,
         bio: data.user?.bio || '',
@@ -278,8 +431,14 @@ function App() {
     if (!file) return
 
     const previewUrl = URL.createObjectURL(file)
-    setUploadImageFile(file)
+    setUploadMediaFile(file)
     setUploadPreview(previewUrl)
+  }
+
+  const handleUploadTypeChange = (type) => {
+    setUploadType(type)
+    setUploadMediaFile(null)
+    setUploadPreview('')
   }
 
   const fetchComments = async (postId) => {
@@ -394,14 +553,18 @@ function App() {
 
   const handleUploadPost = async (e) => {
     e.preventDefault()
-    if (!uploadCaption || !uploadImageFile || !uploadPreview || !token) return
+    if (!uploadCaption || !uploadMediaFile || !uploadPreview || !token) {
+      setUploadError('Add a caption and choose an image or video first')
+      return
+    }
 
     try {
       setUploadError('')
 
       const formData = new FormData()
       formData.append('caption', uploadCaption)
-      formData.append('image', uploadImageFile)
+      formData.append('media', uploadMediaFile)
+      formData.append('mediaType', uploadType)
 
       const response = await fetch(`${API_BASE}/api/post/upload`, {
         method: 'POST',
@@ -416,14 +579,22 @@ function App() {
       }
 
       setUploadCaption('')
-      setUploadImageFile(null)
+      setUploadMediaFile(null)
       setUploadPreview('')
+      setUploadType('image')
       await fetchPosts()
       setActivePage('feed')
     } catch (error) {
       setUploadError('Unable to upload post')
       console.error('Upload failed:', error)
     }
+
+  }
+
+  const moveReel = (index, direction) => {
+    const nextIndex = index + direction
+    const reelSlides = document.querySelectorAll('.reel-slide')
+    reelSlides[nextIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   const handleAvatarPick = (e) => {
@@ -471,6 +642,7 @@ function App() {
       if (data?.user) {
         setCurrentUser((prev) => ({
           ...prev,
+          _id: data.user._id || prev._id,
           username: data.user.username || prev.username,
           email: data.user.email || prev.email,
           bio: data.user.bio || '',
@@ -493,31 +665,51 @@ function App() {
 
     if (!query) {
       setSearchResults([])
-      setSearchError('')
+      setSearchError('Enter a username to search')
+      setHasSearched(false)
+      return
+    }
+
+    if (!token) {
+      setSearchResults([])
+      setSearchError('Please log in again to search users')
+      setHasSearched(false)
       return
     }
 
     try {
       setIsSearchLoading(true)
       setSearchError('')
+      setHasSearched(true)
 
       const response = await fetch(
         `${API_BASE}/api/user/search?username=${encodeURIComponent(query)}`,
-        {
-          headers: authHeaders
-        }
+        authenticatedRequestOptions({
+          cache: 'no-store',
+          headers: { Accept: 'application/json' }
+        })
       )
 
-      const data = await response.json()
+      const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        setSearchError(data?.message || 'Unable to search users')
+        if (response.status === 401) {
+          handleSessionExpired()
+        } else {
+          setSearchError(data?.message || `Unable to search users (${response.status})`)
+        }
         setSearchResults([])
         return
       }
 
-      setSearchResults(data.users || [])
+      if (!Array.isArray(data.users)) {
+        setSearchResults([])
+        setSearchError('Search returned an invalid response')
+        return
+      }
+
+      setSearchResults(data.users)
     } catch (error) {
-      setSearchError('Unable to search users')
+      setSearchError('Search service is unavailable. Check that the backend is running.')
       setSearchResults([])
       console.error('User search failed:', error)
     } finally {
@@ -529,19 +721,31 @@ function App() {
     setLoggedIn(false)
     setToken('')
     localStorage.removeItem('token')
+    localStorage.removeItem('activePage')
+    localStorage.removeItem('currentUser')
     setActivePage('feed')
     setPassword('')
     setSearchQuery('')
     setSearchResults([])
     setSearchError('')
+    setHasSearched(false)
+    setConversations([])
+    setSelectedChatUser(null)
+    setChatMessages([])
+    setChatInput('')
+    setChatSearchQuery('')
+    setChatSearchResults([])
+    setChatError('')
   }
 
   const handleDeleteAccount = () => {
     setLoggedIn(false)
     setToken('')
     localStorage.removeItem('token')
+    localStorage.removeItem('activePage')
+    localStorage.removeItem('currentUser')
     setActivePage('feed')
-    setCurrentUser({ username: '', email: '', bio: '', avatar: '' })
+    setCurrentUser({ _id: '', username: '', email: '', bio: '', avatar: '' })
     setEmail('')
     setPassword('')
     setSignupUsername('')
@@ -552,6 +756,14 @@ function App() {
     setSearchQuery('')
     setSearchResults([])
     setSearchError('')
+    setHasSearched(false)
+    setConversations([])
+    setSelectedChatUser(null)
+    setChatMessages([])
+    setChatInput('')
+    setChatSearchQuery('')
+    setChatSearchResults([])
+    setChatError('')
   }
 
   const ownPosts = posts.filter((post) => post.username === currentUser.username)
@@ -598,6 +810,27 @@ function App() {
                 onAddComment={addComment}
                 onDeleteComment={deleteComment}
               />
+            ) : activePage === 'reels' ? (
+              <ReelsPage
+                posts={posts}
+                expandedPosts={expandedPosts}
+                following={following}
+                likes={likes}
+                commentsOpenByPost={commentsOpenByPost}
+                commentsLoadingByPost={commentsLoadingByPost}
+                commentsByPost={commentsByPost}
+                commentInputByPost={commentInputByPost}
+                currentUsername={currentUser.username}
+                actionError={actionError}
+                onToggleFollow={toggleFollow}
+                onTogglePostSize={togglePostSize}
+                onToggleLike={toggleLike}
+                onToggleComments={toggleComments}
+                onCommentInputChange={handleCommentInputChange}
+                onAddComment={addComment}
+                onDeleteComment={deleteComment}
+                onMoveReel={moveReel}
+              />
             ) : activePage === 'search' ? (
               <SearchPage
                 searchQuery={searchQuery}
@@ -606,19 +839,49 @@ function App() {
                 isSearchLoading={isSearchLoading}
                 searchError={searchError}
                 searchResults={searchResults}
+                hasSearched={hasSearched}
                 following={following}
                 currentUsername={currentUser.username}
                 onToggleFollow={toggleFollow}
+                onMessageUser={openChatWithUser}
               />
             ) : activePage === 'upload' ? (
               <UploadPage
                 uploadCaption={uploadCaption}
                 onChangeUploadCaption={setUploadCaption}
+                uploadType={uploadType}
+                onChangeUploadType={handleUploadTypeChange}
                 uploadPreview={uploadPreview}
                 uploadError={uploadError}
-                onImagePick={handleImagePick}
+                onMediaPick={handleImagePick}
                 onSubmit={handleUploadPost}
               />
+            ) : activePage === 'chats' ? (
+              <div className={selectedChatUser ? 'chat-page with-conversation' : 'chat-page'}>
+                <AllChats
+                  conversations={conversations}
+                  selectedUser={selectedChatUser}
+                  searchQuery={chatSearchQuery}
+                  searchResults={chatSearchResults}
+                  isSearchLoading={chatSearchLoading}
+                  error={chatError}
+                  onChangeSearchQuery={setChatSearchQuery}
+                  onSearch={searchChatUsers}
+                  onSelectConversation={fetchConversation}
+                />
+                <Chat
+                  user={selectedChatUser}
+                  messages={chatMessages}
+                  currentUserId={currentUser._id}
+                  input={chatInput}
+                  loading={chatLoading}
+                  sending={chatSending}
+                  error={chatError}
+                  onChangeInput={setChatInput}
+                  onSend={sendChatMessage}
+                  onBack={() => setSelectedChatUser(null)}
+                />
+              </div>
             ) : (
               <ProfilePage
                 currentUser={currentUser}
@@ -636,7 +899,13 @@ function App() {
             )}
           </main>
 
-          <BottomNav activePage={activePage} onChangePage={setActivePage} />
+          <BottomNav
+            activePage={activePage}
+            onChangePage={(page) => {
+              setActivePage(page)
+              localStorage.setItem('activePage', page)
+            }}
+          />
         </>
       )}
     </div>

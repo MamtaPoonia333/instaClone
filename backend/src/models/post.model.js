@@ -10,6 +10,11 @@ const postSchema = new mongoose.Schema({
         required: [true, 'Image URL is required']
 
     },
+    mediaType: {
+        type: String,
+        enum: ['image', 'video'],
+        default: 'image'
+    },
     user: {
         ref: 'user',
         type: mongoose.Schema.Types.ObjectId,

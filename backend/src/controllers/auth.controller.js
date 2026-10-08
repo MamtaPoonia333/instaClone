@@ -51,6 +51,7 @@ async function registerController(req, res) {
 			message: 'User created successfully',
 			token,
 			user: {
+				_id: newUser._id,
 				username: newUser.username,
 				email: newUser.email,
 				bio: newUser.bio,
@@ -173,6 +174,7 @@ async function loginController(req, res) {
 			message: 'Login successful',
 			token,
 			user: {
+				_id: user._id,
 				username: user.username,
 				email: user.email,
 				bio: user.bio,

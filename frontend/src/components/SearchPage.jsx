@@ -6,21 +6,26 @@ function SearchPage({
   isSearchLoading,
   searchError,
   searchResults,
+  hasSearched,
   following,
   currentUsername,
-  onToggleFollow
+  onToggleFollow,
+  onMessageUser
 }) {
   return (
     <section className="card user-search-card">
       <form className="user-search-form" onSubmit={onSearch}>
         <input
-          type="text"
+          type="search"
+          name="username"
+          autoComplete="off"
           placeholder="Search user by username"
           value={searchQuery}
           onChange={(e) => onChangeSearchQuery(e.target.value)}
         />
         <button type="submit" className="search-submit" aria-label="Search users">
-          <svg className="btn-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <span className="search-submit-label">Search</span>
+          <svg className="btn-icon search-submit-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M10 4.75a5.25 5.25 0 1 0 3.34 9.29l4.3 4.3a.75.75 0 1 0 1.06-1.06l-4.3-4.3A5.25 5.25 0 0 0 10 4.75m-3.75 5.25a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0" />
           </svg>
         </button>
@@ -47,14 +52,24 @@ function SearchPage({
                   </div>
                 </div>
                 {username !== currentUsername ? (
-                  <button
-                    className="ghost-btn"
-                    onClick={() => onToggleFollow(username)}
-                    aria-label={following[username] ? 'Unfollow user' : 'Follow user'}
-                    type="button"
-                  >
-                    {following[username] ? 'Following' : 'Follow'}
-                  </button>
+                  <div className="user-search-actions">
+                    <button
+                      className="ghost-btn"
+                      onClick={() => onToggleFollow(username)}
+                      aria-label={following[username] ? 'Unfollow user' : 'Follow user'}
+                      type="button"
+                    >
+                      {following[username] ? 'Following' : 'Follow'}
+                    </button>
+                    <button
+                      className="message-user-btn"
+                      onClick={() => onMessageUser(user)}
+                      aria-label={`Message ${username}`}
+                      type="button"
+                    >
+                      Message
+                    </button>
+                  </div>
                 ) : null}
               </article>
             )
@@ -62,7 +77,7 @@ function SearchPage({
         </div>
       ) : null}
 
-      {!isSearchLoading && !searchError && searchQuery.trim() && searchResults.length === 0 ? (
+      {!isSearchLoading && hasSearched && !searchError && searchResults.length === 0 ? (
         <p className="post-caption">No users found</p>
       ) : null}
     </section>

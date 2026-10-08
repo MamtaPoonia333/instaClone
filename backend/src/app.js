@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRouter = require('./routes/auth.route');
 const postRouter = require('./routes/post.route');
 const userRouter = require('./routes/user.route');
+const messageRouter = require('./routes/message.route');
 
 const app = express();
 const healthRouter = require('./routes/health.route');
@@ -47,5 +48,6 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api/post', postRouter);
 app.use('/api/user', userRouter);
+app.use('/api/messages', messageRouter);
 
 module.exports = app;
